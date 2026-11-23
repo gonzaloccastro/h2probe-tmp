@@ -1,0 +1,18 @@
+name: h2probe
+on: workflow_dispatch
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl version
+        run: curl --version | head -1
+      - name: challenge check
+        run: curl -sI --http2 -L -A "" https://tekuno.dev/tekuno-media-audit | grep -i -E "^HTTP|sg-captcha|location" || true
+      - name: parallel h2 probe
+        run: |
+          for u in https://tekuno.dev/ https://tekuno.dev/tekuno-media-audit; do
+            for ua in "curl/8.5.0" "WordPress/6.8; https://wordpress.org"; do
+              echo "== $u | UA: $ua"
+              seq 30 | xargs -P 10 -I{} curl -s -o /dev/null -L --http2 -A "$ua" -w "%{http_code} %{http_version} %{errormsg}\n" "$u" | sort | uniq -c
+            done
+          done
